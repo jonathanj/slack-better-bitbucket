@@ -5,3 +5,4 @@ COPY ["target/uberjar/slack-better-bitbucket-0.1.0-SNAPSHOT-standalone.jar", "/s
 WORKDIR /srv/slack_better_bitbucket
 ENTRYPOINT ["/usr/bin/java", "-jar", "/srv/slack_better_bitbucket/slack-better-bitbucket.jar"]
 EXPOSE 8880
+EXPOSE 8881
