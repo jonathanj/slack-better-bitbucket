@@ -4,7 +4,7 @@
             [compojure.core :refer [context routes]]
             [cheshire.core :refer [parse-stream]]
             [ring.server.standalone :refer [serve]]
-            [ring.middleware.defaults :refer [wrap-defaults secure-api-defaults]]
+            [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [slack-better-bitbucket.slack :as slack]
             [slack-better-bitbucket.bitbucket :as bitbucket])
   (:gen-class))
@@ -23,7 +23,7 @@
 ;; function.
 (defn handler [slack-incoming-uri]
   (-> (app slack-incoming-uri)
-      (wrap-defaults secure-api-defaults)))
+      (wrap-defaults api-defaults)))
 
 (def cli-options
   [[nil  "--slack-incoming-uri URI" "URI for Slack incoming webhook"]
