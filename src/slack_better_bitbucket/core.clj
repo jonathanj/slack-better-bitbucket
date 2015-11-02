@@ -77,7 +77,7 @@
         errors (exit 1 (error-msg errors)))
 
       (serve (handler slack-incoming-uri)
-             {:configurator remove-non-ssl-connectors
+             {;:configurator remove-non-ssl-connectors
               :open-browser? false
               :auto-reload? dev
               :stacktraces? dev
