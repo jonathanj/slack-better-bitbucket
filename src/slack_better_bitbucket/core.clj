@@ -31,6 +31,10 @@
     :default 8880
     :parse-fn #(Integer/parseInt %)
     :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
+   [nil  "--ssl-port PORT" "SSL Port number"
+    :default 8881
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 0 % 0x10000) "Must be a number between 0 and 65536"]]
    [nil  "--dev" "Development mode"]
    [nil  "--keystore PATH" "Keystore to use for SSL certificates"
     :default "keystore.jks"]
@@ -69,9 +73,9 @@
 (defn -main
   [& args]
   (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)]
-    (let [{:keys [port slack-incoming-uri keystore keystore-password dev]
-           :or   {post 8880}
+    (let [{:keys [port ssl-port slack-incoming-uri keystore keystore-password dev]
            :as   options} (merge-with-config options)]
+      (println options)
       (cond
         (:help options) (exit 0 (usage summary))
         errors (exit 1 (error-msg errors)))
@@ -82,7 +86,8 @@
               :auto-reload? dev
               :stacktraces? dev
               :http? false
-              :ssl-port port
+              :port port
+              :ssl-port ssl-port
               :keystore keystore
               :key-password keystore-password
               :join? false}))))
