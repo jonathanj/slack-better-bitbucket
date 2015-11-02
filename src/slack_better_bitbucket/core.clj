@@ -2,12 +2,16 @@
   (:use ring.adapter.jetty)
   (:require [clojure.tools.cli :refer [parse-opts]]
             [compojure.core :refer [context routes]]
+            [cheshire.core :refer [parse-stream]]
             [ring.server.standalone :refer [serve]]
             [ring.middleware.defaults :refer [wrap-defaults secure-api-defaults]]
             [slack-better-bitbucket.slack :as slack]
             [slack-better-bitbucket.bitbucket :as bitbucket])
   (:gen-class))
 
+
+(defn read-config [path]
+  (parse-stream (clojure.java.io/reader path) true))
 
 (defn app [slack-incoming-uri]
   (routes
@@ -31,6 +35,7 @@
    [nil  "--keystore PATH" "Keystore to use for SSL certificates"
     :default "keystore.jks"]
    [nil  "--keystore-password PASSWORD" "Keystore password"]
+   ["-c" "--config FILE" "Configuration file"]
    ["-h" "--help"]])
 
 (defn usage [summary]
@@ -51,27 +56,33 @@
 ;; ring-jetty-adapter release with the :http? option.
 (defn- remove-non-ssl-connectors [server]
   (doseq [c (.getConnectors server)]
-    (println c)
     (when-not (or (nil? c))
       (.removeConnector server c)))
   server)
 
+(defn- merge-with-config [options]
+  (let [config (:config options)]
+    (if config
+      (merge options (read-config config))
+      options)))
+
 (defn -main
   [& args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)
-        {:keys [port slack-incoming-uri keystore keystore-password dev]
-         :or   {post 8880}} options]
-    (cond
-      (:help options) (exit 0 (usage summary))
-      errors (exit 1 (error-msg errors)))
+  (let [{:keys [options arguments errors summary]} (parse-opts args cli-options)]
+    (let [{:keys [port slack-incoming-uri keystore keystore-password dev]
+           :or   {post 8880}
+           :as   options} (merge-with-config options)]
+      (cond
+        (:help options) (exit 0 (usage summary))
+        errors (exit 1 (error-msg errors)))
 
-    (serve (handler slack-incoming-uri)
-           {:configurator remove-non-ssl-connectors
-            :open-browser? false
-            :auto-reload? dev
-            :stacktraces? dev
-            :http? false
-            :ssl-port port
-            :keystore keystore
-            :key-password keystore-password
-            :join? false})))
+      (serve (handler slack-incoming-uri)
+             {:configurator remove-non-ssl-connectors
+              :open-browser? false
+              :auto-reload? dev
+              :stacktraces? dev
+              :http? false
+              :ssl-port port
+              :keystore keystore
+              :key-password keystore-password
+              :join? false}))))

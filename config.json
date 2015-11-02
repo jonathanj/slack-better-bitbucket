@@ -1,0 +1,5 @@
+{
+    "port": 8880,
+    "dev": false,
+    "slack-incoming-uri": "http://example.com/a/b"
+}
