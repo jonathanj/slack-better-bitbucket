@@ -4,18 +4,18 @@
             [slack-better-bitbucket.util :refer [dump]]))
 
 
-(defn author
+(defn -author
   ([name]
-   (author name nil nil))
+   (-author name nil nil))
   ([name icon]
-   (author name nil icon))
+   (-author name nil icon))
   ([name link icon]
    {:author_name name
     :author_link link
     :author_icon icon}))
 
 
-(defn title
+(defn -title
   ([text]
    (title text nil))
   ([text link]
@@ -23,9 +23,9 @@
     :title_link link}))
 
 
-(defn field
+(defn -field
   ([title value]
-   (field title value true))
+   (-field title value true))
   ([title value short?]
    {:title title
     :value value
@@ -41,8 +41,8 @@
 (defn attachment
   [{:keys [fallback color pretext author title text fields image thumb mrkdwn_in]
     :or {color "#3572b0"
-         author {}
-         title {}
+         author []
+         title []
          mrkdwn_in ["pretext" "text" "fields"]
          fields []
          fallback (build-pretext payload)}
@@ -52,11 +52,13 @@
     :color color
     :pretext (build-pretext payload)
     :text text
-    :fields (map #(apply field %)
+    :fields (map #(apply -field %)
                  (keep identity fields))
     :mrkdwn_in mrkdwn_in}
-   author
-   title))
+   (when-not (empty? author)
+     (apply -author author))
+   (when-not (empty? title)
+     (apply -title title))))
 
 (defn post-message!
   [uri attachments & {:keys [username icon_url debug?]
