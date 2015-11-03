@@ -140,13 +140,20 @@
   [{:pretext [(tag repository)
               (ascribed actor
                         (action-for pullrequest :created))]
-    :text (pr-branches pullrequest)}])
+    :fields [["Branches" (pr-branches pullrequest)]]}])
 
 (defmethod format-message "pullrequest:updated"
   [{{:keys [actor repository pullrequest]} :payload}]
   [{:pretext [(tag repository)
               (ascribed actor
                         (action-for pullrequest :updated))]}])
+
+(defmethod format-message "pullrequest:fulfilled"
+  [{{:keys [actor repository pullrequest]} :payload}]
+  [{:pretext [(tag repository)
+              (ascribed actor
+                        (action-for pullrequest :merged))]
+    :fields [["Branches" (pr-branches pullrequest)]]}])
 
 (defmethod format-message "pullrequest:approved"
   [{{:keys [repository pullrequest approval]} :payload}]
@@ -175,7 +182,18 @@
   [{{:keys [actor issue comment repository]} :payload}]
   [{:pretext [(tag repository)
               (ascribed issue
-                        (action-for issue :commented comment))]}])
+                        (action-for issue :commented_on comment))]}])
+
+(defn issue-changes [changes]
+  (for [[k v] changes]
+    [(verb-to-name k) (format "%s → %s" (:old v) (:new v))]))
+
+(defmethod format-message "issue:updated"
+  [{{:keys [actor repository issue comment changes]} :payload}]
+  [{:pretext [(tag repository)
+              (ascribed issue
+                        (action-for issue :updated comment))]
+    :fields (issue-changes changes)}])
 
 (defmethod format-message "repo:push"
   [{{:keys [actor push repository]} :payload}]
