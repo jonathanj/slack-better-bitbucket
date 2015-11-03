@@ -1,4 +1,5 @@
 (ns slack-better-bitbucket.bitbucket
+  (import [java.net URI])
   (:require [liberator.core :refer [defresource]]
             [compojure.core :as compojure :refer [ANY]]
             [cheshire.core :refer [parse-string]]
@@ -6,20 +7,32 @@
             [slack-better-bitbucket.slack :as slack]))
 
 
-(defn web-ref [entity]
-  (get-in entity [:links :html :href]))
+(defn munge-api-href
+  "Munge an API href to an HTML href."
+  [href]
+  (let [uri (URI/create href)
+        segments (clojure.string/split (.getPath uri) #"/")]
+    (.toString
+     (URI. (.getScheme uri)
+           (.getUserInfo uri)
+           (clojure.string/replace (.getHost uri) "api." "")
+           (.getPort uri)
+           (str "/" (clojure.string/join "/" (drop 3 segments)))
+           (.getQuery uri)
+           (.getFragment uri)))))
 
 
-(defn link-to [text href]
-  (if href
-    (format "<%s|%s>" href text)
-    text))
+(defn web-ref [entity title]
+  (let [href (get-in entity [:links :html :href]
+                     (munge-api-href (get-in entity [:links :self :href])))]
+    (if href
+      (format "<%s|%s>" href title)
+      title)))
 
 
 (defn link-for
   ([m key text-key]
-   (link-to (get-in m (cons key text-key))
-            (web-ref (m key)))))
+   (web-ref (m key) (get-in m (cons key text-key)))))
 
 
 (defn slice [s n]
@@ -31,13 +44,12 @@
 
 
 (defn- verb-to-name [verb]
-  (name verb))
+  (clojure.string/replace (name verb) #"[_-]" " "))
 
 
 (defn format-commit [commit]
-  (format "`<%s|%s>` *@%s* %s"
-          (web-ref commit)
-          (slice (:hash commit) 8)
+  (format "`%s` *@%s* %s"
+          (web-ref commit (slice (:hash commit) 8))
           (get-in commit [:author :user :username])
           (:message commit)))
 
@@ -59,31 +71,28 @@
 
 (defmulti action-for (fn [entity & args] (:type entity)))
 
+
+(defn id-title [entity]
+  (format "#%s: %s" (:id entity) (:title entity)))
+
 (defmethod action-for "pullrequest"
   [pr verb]
-  (format "*%s* pull request *<%s|#%s: %s>*"
+  (format "*%s* pull request *%s*"
           (verb-to-name verb)
-          (web-ref pr)
-          (:id pr)
-          (:title pr)))
+          (web-ref pr (id-title pr))))
 
 
 (defmethod action-for "issue"
   ([issue verb]
-   (format "*%s* %s *<%s|#%s: %s>*"
+   (format "*%s* %s *%s*"
            (verb-to-name verb)
            (:kind issue)
-           (web-ref issue)
-           (:id issue)
-           (:title issue)))
-                                        ; Adding stuff to issues, like comments.
+           (web-ref issue (id-title issue))))
   ([issue verb comment]
-   (format "<%s|%s> on *<%s|#%s: %s>*"
-           (web-ref comment)
-           (verb-to-name verb)
-           (web-ref issue)
-           (:id issue)
-           (:title issue))))
+   (format "%s %s *%s*"
+           (web-ref comment (verb-to-name verb))
+           (:kind issue)
+           (web-ref issue (id-title issue)))))
 
 
 (defmethod action-for "change"
