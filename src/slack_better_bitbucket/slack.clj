@@ -17,7 +17,7 @@
 
 (defn -title
   ([text]
-   (title text nil))
+   (-title text nil))
   ([text link]
    {:title text
     :title_link link}))
