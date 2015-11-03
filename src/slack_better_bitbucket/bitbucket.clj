@@ -170,7 +170,7 @@
 (defmethod format-message "issue:created"
   [{{:keys [actor issue comment repository]} :payload}]
   [{:pretext [(tag repository)
-              (ascribed issue
+              (ascribed actor
                         (action-for issue :created))]
     :fields [(field-for issue "Component" [:component :name])
              (field-for issue "Assignee" [:assignee :username])
@@ -181,7 +181,7 @@
 (defmethod format-message "issue:comment_created"
   [{{:keys [actor issue comment repository]} :payload}]
   [{:pretext [(tag repository)
-              (ascribed issue
+              (ascribed actor
                         (action-for issue :commented_on comment))]}])
 
 (defn issue-changes [changes]
@@ -191,7 +191,7 @@
 (defmethod format-message "issue:updated"
   [{{:keys [actor repository issue comment changes]} :payload}]
   [{:pretext [(tag repository)
-              (ascribed issue
+              (ascribed actor
                         (action-for issue :updated comment))]
     :fields (issue-changes changes)}])
 
