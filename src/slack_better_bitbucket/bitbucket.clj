@@ -22,7 +22,9 @@
            (.getFragment uri)))))
 
 
-(defn web-ref [entity title]
+(defn web-ref
+  "Construct a clickable link to an entity."
+  [entity title]
   (let [href (get-in entity [:links :html :href]
                      (munge-api-href (get-in entity [:links :self :href])))]
     (if href
@@ -47,17 +49,6 @@
   (clojure.string/replace (name verb) #"[_-]" " "))
 
 
-(defn format-commit [commit]
-  (format "`%s` *@%s* %s"
-          (web-ref commit (slice (:hash commit) 8))
-          (get-in commit [:author :user :username])
-          (:message commit)))
-
-
-(defn format-commits [commits]
-  (clojure.string/join "\n" (map format-commit commits)))
-
-
 (defmulti ascribed (fn [entity & args] (:type entity)))
 
 (defmethod ascribed "user"
@@ -69,11 +60,11 @@
   (ascribed (:reporter entity) text))
 
 
-(defmulti action-for (fn [entity & args] (:type entity)))
-
-
 (defn id-title [entity]
   (format "#%s: %s" (:id entity) (:title entity)))
+
+
+(defmulti action-for (fn [entity & _] (:type entity)))
 
 (defmethod action-for "pullrequest"
   [pr verb]
@@ -97,19 +88,12 @@
 
 (defmethod action-for "change"
   [change verb commits]
-  (format "*%s* %s commits"
-          (verb-to-name verb)
-          (count commits)))
-
-
-(defn change-attachment [repository actor change]
-  (let [{:keys [commits]} change]
-    {:pretext [(tag repository)
-               (ascribed actor
-                         (action-for (assoc change :type "change")
-                                     :pushed
-                                     commits))]
-     :text (format-commits commits)}))
+  (let [n (count commits)]
+    (format "*%s* %s commit%s to _%s_"
+            (verb-to-name verb)
+            (str n (when (>= n 5) "+"))
+            (if (= n 1) "" "s")
+            (link-for change :new [:name]))))
 
 
 (defn field-for [entity title path]
@@ -142,11 +126,13 @@
                         (action-for pullrequest :created))]
     :fields [["Branches" (pr-branches pullrequest)]]}])
 
+
 (defmethod format-message "pullrequest:updated"
   [{{:keys [actor repository pullrequest]} :payload}]
   [{:pretext [(tag repository)
               (ascribed actor
                         (action-for pullrequest :updated))]}])
+
 
 (defmethod format-message "pullrequest:fulfilled"
   [{{:keys [actor repository pullrequest]} :payload}]
@@ -184,9 +170,11 @@
               (ascribed actor
                         (action-for issue :commented_on comment))]}])
 
+
 (defn issue-changes [changes]
   (for [[k v] changes]
     [(verb-to-name k) (format "%s → %s" (:old v) (:new v))]))
+
 
 (defmethod format-message "issue:updated"
   [{{:keys [actor repository issue comment changes]} :payload}]
@@ -194,6 +182,30 @@
               (ascribed actor
                         (action-for issue :updated comment))]
     :fields (issue-changes changes)}])
+
+
+(defn format-commit [commit]
+  (format "`%s` *@%s* %s"
+          (web-ref commit (slice (:hash commit) 8))
+          (get-in commit [:author :user :username])
+          (:message commit)))
+
+
+(defn format-commits [commits]
+  (clojure.string/join "\n" (map format-commit commits)))
+
+
+(defn change-attachment [repository actor change]
+  (let [{:keys [commits]} change]
+    {:pretext [(tag repository)
+               (ascribed actor
+                         (action-for (assoc change :type "change")
+                                     (if (:forced change)
+                                       :force_pushed
+                                       :pushed)
+                                     commits))]
+     :text (format-commits commits)}))
+
 
 (defmethod format-message "repo:push"
   [{{:keys [actor push repository]} :payload}]
