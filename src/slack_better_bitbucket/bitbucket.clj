@@ -238,7 +238,7 @@
 
 (defn routes [post-slack-message!]
   (compojure/routes
-   (ANY "/event" {{:keys [debug]
-                   :or {debug false}} :params}
-     (do
-       (bitbucket-event-resource post-slack-message! debug)))))
+   (ANY "/event" {{debug "debug"
+                   :or {debug false}} :query-params
+                  :as req}
+     (bitbucket-event-resource post-slack-message! debug))))
