@@ -10,7 +10,7 @@
 (defn munge-api-href
   "Munge an API href to an HTML href."
   [href]
-  (let [uri (URI/create href)
+  (let [uri      (URI/create href)
         segments (clojure.string/split (.getPath uri) #"/")]
     (.toString
      (URI. (.getScheme uri)
@@ -34,7 +34,9 @@
 
 (defn link-for
   ([m key text-key]
-   (web-ref (m key) (get-in m (cons key text-key)))))
+   (if (empty? text-key)
+     (m key)
+     (web-ref (m key) (get-in m (cons key text-key))))))
 
 
 (defn slice [s n]
