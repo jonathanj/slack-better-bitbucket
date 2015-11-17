@@ -209,10 +209,17 @@
      :text (format-commits commits)}))
 
 
+(def whitelist #{"default" "prod" "uat"})
+
+
+(defn- is-whitelisted-change [whitelist change]
+  (not (nil? (whitelist (get-in change [:new  :name])))))
+
+
 (defmethod format-message "repo:push"
   [{{:keys [actor push repository]} :payload}]
   (map (partial change-attachment repository actor)
-       (:changes push)))
+       (filter (partial is-whitelisted-change whitelist) (:changes push))))
 
 
 (defresource bitbucket-event-resource [post-slack-message! debug?]
