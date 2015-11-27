@@ -155,6 +155,13 @@
               (ascribed (:user approval)
                         (action-for pullrequest :unapproved))]}])
 
+(defmethod format-message "pullrequest:comment_created"
+  [{{:keys [repository pullrequest comment]} :payload}]
+  [{:pretext [(tag repository)
+              (ascribed (:user comment)
+                        (action-for pullrequest :commented_on))]
+    :text (get-in comment [:content :raw])}])
+
 (defmethod format-message "issue:created"
   [{{:keys [actor issue comment repository]} :payload}]
   [{:pretext [(tag repository)
