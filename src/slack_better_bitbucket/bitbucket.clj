@@ -93,7 +93,7 @@
   (let [n (count commits)]
     (format "*%s* %s commit%s to _%s_"
             (verb-to-name verb)
-            (str n (when (>= n 5) "+"))
+            (str n (when (:truncated change) "+"))
             (if (= n 1) "" "s")
             (link-for change :new [:name]))))
 
