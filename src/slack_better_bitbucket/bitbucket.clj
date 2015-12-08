@@ -204,16 +204,18 @@
   (clojure.string/join "\n" (map format-commit commits)))
 
 
-(defn change-attachment [repository actor change]
+(defn change-attachment [repository actor show-commits? change]
   (let [{:keys [commits]} change]
-    {:pretext [(tag repository)
-               (ascribed actor
-                         (action-for (assoc change :type "change")
-                                     (if (:forced change)
-                                       :force_pushed
-                                       :pushed)
-                                     commits))]
-     :text (format-commits commits)}))
+    (merge
+     {:pretext [(tag repository)
+                (ascribed actor
+                          (action-for (assoc change :type "change")
+                                      (if (:forced change)
+                                        :force_pushed
+                                        :pushed)
+                                      commits))]}
+     (when show-commits?
+       {:text (format-commits commits)}))))
 
 
 (def whitelist #{"default" "prod" "uat"})
@@ -225,7 +227,7 @@
 
 (defmethod format-message "repo:push"
   [{{:keys [actor push repository]} :payload}]
-  (map (partial change-attachment repository actor)
+  (map (partial change-attachment repository actor false)
        (filter (partial is-whitelisted-change whitelist) (:changes push))))
 
 
